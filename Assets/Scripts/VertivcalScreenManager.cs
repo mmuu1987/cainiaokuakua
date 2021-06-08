@@ -37,6 +37,8 @@ public class VertivcalScreenManager : MonoBehaviour
 
     private int _count = 0;
 
+
+    private bool _isReceiveInfo = false;
     // Start is called before the first frame update
     void Start()
     {
@@ -55,26 +57,42 @@ public class VertivcalScreenManager : MonoBehaviour
 
         StartCoroutine(GetInfo());
 
-         _count = PlayerPrefs.GetInt("Person");
+        Screen.SetResolution(2160,3840,true);
+       
+        _count = PlayerPrefs.GetInt("Person");
 
-        if (_count == 0) _count = 10000;
+        if (_count == 0) _count = 1000;
 
 
     }
 
+    private Coroutine _coroutine;
+
+    private Coroutine _showImg;
     /// <summary>
     /// 提交服务器图片数据完成，并生成了二维码
     /// </summary>
     /// <param name="obj"></param>
     private void Instance_PostPictureCompleted1(Texture2D obj)
     {
-        QRawImage.texture = obj;
-        CaptrueImage.gameObject.SetActive(true);
+        AddItetm(true, DescriptionText.text);
 
-        StartCoroutine(GlobalSettings.WaitTime(5f, (() =>
+
+        if(_coroutine!=null)StopCoroutine(_coroutine);
+        _coroutine= StartCoroutine(GlobalSettings.WaitTime(5f, (() =>
         {
-            CaptrueImage.gameObject.SetActive(false);
+            _isReceiveInfo = true;
+            QRawImage.texture = obj;
+            CaptrueImage.gameObject.SetActive(true);
+            if(_showImg!=null)StopCoroutine(_showImg);
+            _showImg =StartCoroutine(GlobalSettings.WaitTime(30f, (() =>
+            {
+                CaptrueImage.gameObject.SetActive(false);
+                _isReceiveInfo = false;
+            })));
         })));
+
+     
     }
 
     /// <summary>
@@ -83,13 +101,19 @@ public class VertivcalScreenManager : MonoBehaviour
     /// <param name="obj"></param>
     private void GetValueCompleted(string obj)
     {
-
+      
         if (!obj.Contains("!*_*!")) {
 
             Debug.Log("没有在服务器获取到数据");
             return;//如果数据不符合规范
 
         }
+
+        if(_showImg!=null)StopCoroutine(_showImg);
+        if(_coroutine!=null)StopCoroutine(_coroutine);
+
+        CaptrueImage.gameObject.SetActive(false);
+        _isReceiveInfo = false;
 
 
         string[] strs = obj.Split(new [] { "!*_*!" }, StringSplitOptions.None);
@@ -108,6 +132,7 @@ public class VertivcalScreenManager : MonoBehaviour
 
         NumberText.text = _count.ToString();
 
+       
         StartCoroutine(MakePhoto());
     }
 
@@ -172,14 +197,23 @@ public class VertivcalScreenManager : MonoBehaviour
     {
         while (true)
         {
-            yield return  new WaitForSeconds(2f);
+
+            yield return new WaitForSeconds(2f);
 
             StartCoroutine(NetManager.Instance.GetValueToServer());
 
-            AddItetm();
+            if (!_isReceiveInfo)
+            {
+                AddItetm(false, null);
+            }
+            else
+            {
+                yield return null;
+            }
+           
         }
     }
-    private void AddItetm()
+    private void AddItetm(bool isUser,string content)
     {
         Item item = Instantiate(PrefabGameObject).GetComponent<Item>();
 
@@ -187,9 +221,19 @@ public class VertivcalScreenManager : MonoBehaviour
 
         string str = InfoList[Random.Range(0, InfoList.Count)];
 
-        item.SetInfo(isLeft, str, Random.Range(0,2)==1);
 
-        isLeft = !isLeft;
+        if (isUser)
+        {
+            item.SetInfo(true, content, true);
+        }
+        else
+        {
+            item.SetInfo(true, str, false);
+        }
+
+       
+
+      
 
         _qurereItems.Enqueue(item);
 
@@ -200,6 +244,9 @@ public class VertivcalScreenManager : MonoBehaviour
             Destroy(temp.gameObject);
         }
     }
+
+
+
 #if UNITY_EDITOR_WIN
 
     private void OnGUI()
