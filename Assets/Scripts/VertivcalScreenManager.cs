@@ -253,7 +253,9 @@ public class VertivcalScreenManager : MonoBehaviour
     {
         if (GUI.Button(new Rect(0f, 0f, 100f, 100f), "test"))
         {
-            StartCoroutine(NetManager.Instance.GetValueToServer());
+            //StartCoroutine(NetManager.Instance.GetValueToServer());
+            GetValueCompleted("快递小哥!*_*!工作如果有开关，那智谷的出现就是一键快乐工作如果有开关，那智谷的出现就是一键快乐工作如果有开关，那智谷的出现就是一键快乐工作如果有开关，那智谷的出现就是一键快乐工作如果有开关，那智谷的出现就是一键快乐");
+
         }
     }
 #endif
